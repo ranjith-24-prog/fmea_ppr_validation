@@ -4,11 +4,23 @@ from typing import Any, Dict, Tuple, Optional, List
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import datetime as dt
+from backend.telemetry import log_llm_run 
 
 # ---------------------------
 # Utilities
 # ---------------------------
 
+TELEMETRY_CLIENT = None 
+
+def set_telemetry_client(sb) -> None:
+    """
+    Register the Supabase client used for telemetry logging.
+    Pass the SAME client returned by create_client(url, key).
+    """
+    global TELEMETRY_CLIENT
+    TELEMETRY_CLIENT = sb
+    
 def _sanitize_common(text: str) -> str:
     text = text.replace('“','"').replace('”','"').replace('‟','"')
     text = text.replace("’","'").replace("‘","'")
@@ -312,7 +324,14 @@ class LLM:
         self.model_id = cfg["id"]
         print("[LLM] Switched to:", cfg["label"])
 
-    def _chat(self, system_prompt: str, user_prompt: str, temperature: float = 0.2, max_tokens: int = 3200) -> str:
+    def _chat(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.2,
+        max_tokens: int = 3200,
+        purpose: str = "generic",
+    ) -> str:
         out = run_llm_chat(
             self.model_id,
             messages=[
@@ -321,8 +340,33 @@ class LLM:
             ],
             temperature=temperature,
             top_p=0.9,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
         )
+
+        # NEW: log to Supabase if telemetry is configured
+        if TELEMETRY_CLIENT is not None:
+            try:
+                cfg = out.get("cfg") or {}
+                raw = out.get("raw") or {}
+                rec = {
+                    "provider": cfg.get("type"),
+                    "model_id": cfg.get("id"),
+                    "model_label": cfg.get("label"),
+                    "purpose": purpose,
+                    "latency_ms": out.get("latency_ms"),
+                    "temperature": temperature,
+                    "top_p": 0.9,
+                    "max_tokens": max_tokens,
+                    "prompt": (user_prompt or "")[:4000],
+                    "response_preview": str(out.get("text", ""))[:2000],
+                    "usage": raw.get("usage"),
+                    "error": None,
+                }
+                log_llm_run(TELEMETRY_CLIENT, rec)
+            except Exception as e:
+                # fail-open: do not break LLM flow due to telemetry
+                print("[telemetry] log_llm_run failed:", e)
+
         return out["text"]
 
     # Backwards-compatible methods
