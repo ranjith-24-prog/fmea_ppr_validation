@@ -27,6 +27,8 @@ from backend.backend_fmea_pipeline import (
 from modes.knowledge_base import render_knowledge_base
 from modes.cases_explorer import render_cases_explorer
 from modes.fmea_assistant import render_fmea_assistant
+from backend.llm import Embeddings, LLM, LLM_REGISTRY, set_telemetry_client
+
 
 st.set_page_config(page_title="CBR FMEA Assistant", layout="wide")
 apply_global_styles()
@@ -59,6 +61,13 @@ def _build_supabase() -> Client:
 
     return create_client(url, key)
 
+@st.cache_resource
+def get_supabase() -> Client:
+    return _build_supabase()
+
+# Create the client once and register telemetry
+sb = get_supabase()
+set_telemetry_client(sb)
 
 def _supabase_bucket_name() -> str:
     return st.secrets.get("SUPABASE_BUCKET", "kb-files")
