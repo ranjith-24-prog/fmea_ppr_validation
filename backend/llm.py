@@ -383,7 +383,7 @@ class LLM:
         else:
             fmea_text = json.dumps(fmea_rows_or_str, ensure_ascii=False, indent=2)
         user_prompt = f"FMEA data:\n{fmea_text}\n\nReturn the categories JSON:"
-        response = self._chat(system_prompt, user_prompt)
+        response = self._chat(system_prompt, user_prompt, emperature=0.2,max_tokens=3200,purpose="generate_ppr_from_fmea")
         try:
             return json.loads(response)
         except Exception as e:
@@ -424,7 +424,7 @@ class LLM:
             "Remember: output exactly one JSON object as described above."
         )
 
-        content = self._chat(system, user, temperature=0.2, max_tokens=3200)
+        content = self._chat(system, user, temperature=0.2, max_tokens=3200, purpose="generate_fmea_and_ppr_json")
         #st.write("DEBUG raw LLM (first 400 chars):")
         #st.code((content or "")[:400], language="json")
 
@@ -502,7 +502,7 @@ class LLM:
             "input_products, products, processes, resources."
         )
 
-        content = self._chat(system, user, temperature=0.2, max_tokens=1600)
+        content = self._chat(system, user, temperature=0.2, max_tokens=1600, purpose="generate_ppr_from_text")
 
         if not content or not str(content).strip():
             raise ValueError("LLM did not return any content (empty response).")
@@ -563,7 +563,7 @@ class LLM:
             "Now return ONLY the JSON ARRAY of FMEA rows as specified."
         )
 
-        content = self._chat(system, user, temperature=0.2, max_tokens=3200)
+        content = self._chat(system, user, temperature=0.2, max_tokens=3200,purpose="generate_fmea_rows_json")
 
         if not content or not str(content).strip():
             return []
