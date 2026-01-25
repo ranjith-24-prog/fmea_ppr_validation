@@ -303,36 +303,51 @@ def _score_row_against_query(row: dict, query_ppr: dict) -> float:
     inter = len(q_tokens & r_tokens)
     return inter/(1+len(q_tokens))
 
-def _select_kb_rows(sb: Client, embedder: Embeddings, query_ppr: dict, top_cases=8, top_rows=30) -> list[dict]:
+def _select_kb_rows(
+    sb: Client,
+    embedder: Embeddings,
+    query_ppr: dict,
+    top_cases: int = 8,
+    top_rows: int = 30
+) -> list[dict]:
     t0 = time.time()
+
     cand_cases = _fetch_candidate_cases(sb, embedder, query_ppr, top_k=top_cases)
     case_ids = [c["case_id"] for c in cand_cases]
+
     rows = _fetch_rows_for_cases(sb, case_ids)
     scored = [{"row": r, "score": _score_row_against_query(r, query_ppr)} for r in rows]
     scored.sort(key=lambda x: x["score"], reverse=True)
+
     picked = [s["row"] for s in scored[:top_rows]]
     for r in picked:
-        r["_provenance"]="kb"
-        for k in ["id","created_at"]:
+        r["_provenance"] = "kb"
+        for k in ["id", "created_at"]:
             r.pop(k, None)
-            
+
     latency_ms = int((time.time() - t0) * 1000)
 
-    # Telemetry record
+    # Telemetry record (FIXED variable names)
     try:
         rec = {
             "event_type": "kb_select_rows",
             "latency_ms": latency_ms,
-            "top_cases": topcases,
-            "top_rows": toprows,
-            "query_ppr": queryppr,
-            "case_ids": caseids,
+            "top_cases": top_cases,
+            "top_rows": top_rows,
+            "query_ppr": query_ppr,
+            "case_ids": case_ids,
+            "extra": {
+                "candidate_case_count": len(cand_cases),
+                "retrieved_row_count": len(rows),
+                "picked_row_count": len(picked),
+            },
         }
         log_retrieval_event(sb, rec)
     except Exception as e:
-        print("[telemetry] log_retrieval_event failed:", e)
+        print("[telemetry] log_retrieval_event failed:", repr(e))
 
     return picked
+
 
 def _complete_missing_with_llm(kb_rows: list[dict], query_ppr: dict, llm: LLM) -> list[dict]:
     prompt = {
