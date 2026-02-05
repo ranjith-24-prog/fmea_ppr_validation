@@ -390,6 +390,7 @@ class LLM:
             raise Exception(f"LLM return decoding failed: {e}. Response was: {response}")
 
     def generate_fmea_and_ppr_json(self, context_text: str, ppr_hint: dict = None):
+    # NOTE: keep your existing constraints exactly; we only add a true one-shot example.
         system = (
             "You are an expert in manufacturing Process FMEA (DIN EN 60812/APIS) and PPR (Product-Process-Resource) categorization.\n"
             "Given a production description, generate EXACTLY one JSON object with keys 'fmea' and 'ppr'.\n"
@@ -417,16 +418,115 @@ class LLM:
             "  }\n"
             "}"
         )
+    
         hint_json = json.dumps(ppr_hint or {}, ensure_ascii=False)
-        user = (
-            f"Production scenario:\n{context_text}\n"
-            f"PPR context hints:\n{hint_json}\n"
-            "Remember: output exactly one JSON object as described above."
+    
+        # --- ONE-SHOT EXAMPLE (added) ---
+        # Keep it short (2–3 rows) to teach formatting + schema, not to overwhelm the real task.
+        one_shot = (
+            "ONE-SHOT EXAMPLE\n\n"
+            "Example input:\n"
+            "Production scenario:\n"
+            "Robotic seam welding of aluminium sheets includes joint preparation using fixtures, welding execution, and NDT inspection.\n"
+            "PPR context hints:\n"
+            '{"products":["Welded aluminium sheets"],"processes":["Joint preparation","Robotic seam welding","Inspection (NDT)"],'
+            '"resources":["Jigs and fixtures","Welding cobot","NDT equipment","Operator"]}\n\n'
+            "Example output (valid JSON; follow this exact schema and nulling rules):\n"
+            "{\n"
+            '  "fmea": [\n'
+            "    {\n"
+            '      "system_element": "Joint preparation",\n'
+            '      "function": "Using jigs and fixtures to position the workpiece",\n'
+            '      "potential_failure": "Incorrect dimension of gap of the workpiece",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Reduced strength of the weld joints",\n'
+            '      "s1": 6,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Workpiece slip due to worn fasteners in fixture",\n'
+            '      "o1": 3,\n'
+            '      "current_preventive_action": "Implement scheduled fixture maintenance and replacement plan",\n'
+            '      "current_detection_action": "Use displacement or vision sensors to detect part misalignment before welding",\n'
+            '      "d1": 4,\n'
+            '      "rpn1": 72,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    },\n"
+            "    {\n"
+            '      "system_element": "Robotic seam welding",\n'
+            '      "function": "Automated welding of aluminium sheets",\n'
+            '      "potential_failure": "Weld bead is deviated from desired bead profile",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Porosity in the weld joints",\n'
+            '      "s1": 7,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Sensor malfunction of the welding cobot during welding",\n'
+            '      "o1": 4,\n'
+            '      "current_preventive_action": "Schedule periodic sensor calibration and health checks",\n'
+            '      "current_detection_action": "Integrate real-time diagnostic alerts for sensor data loss or drift",\n'
+            '      "d1": 4,\n'
+            '      "rpn1": 112,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    },\n"
+            "    {\n"
+            '      "system_element": "Inspection",\n'
+            '      "function": "Interpret NDT equipment readings to detect flaws and accept/reject welds",\n'
+            '      "potential_failure": "Accepted defects due to incomplete/inaccurate NDT inspection",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Material failure in service",\n'
+            '      "s1": 6,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Inaccurate calibration of the equipment during the inspection procedure",\n'
+            '      "o1": 5,\n'
+            '      "current_preventive_action": "Follow documented calibration schedule with traceable reference standards",\n'
+            '      "current_detection_action": "Audit calibration certificates and verify readings using control samples",\n'
+            '      "d1": 4,\n'
+            '      "rpn1": 120,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    }\n"
+            "  ],\n"
+            '  "ppr": {\n'
+            '    "products": ["Welded aluminium sheets"],\n'
+            '    "processes": ["Joint preparation","Robotic seam welding","Inspection (NDT)"],\n'
+            '    "resources": ["Jigs and fixtures","Welding cobot","NDT equipment","Operator"]\n'
+            "  }\n"
+            "}\n\n"
+            "END ONE-SHOT EXAMPLE\n\n"
         )
-
+    
+        user = (
+            one_shot
+            + f"Production scenario:\n{context_text}\n"
+            + f"PPR context hints:\n{hint_json}\n"
+            + "Remember: output exactly one JSON object as described above."
+        )
+    
         content = self._chat(system, user, temperature=0.2, max_tokens=3200, purpose="generate_fmea_and_ppr_json")
-        #st.write("DEBUG raw LLM (first 400 chars):")
-        #st.code((content or "")[:400], language="json")
+        # st.write("DEBUG raw LLM (first 400 chars):")
+        # st.code((content or "")[:400], language="json")
+
 
         if not content or not str(content).strip():
             raise ValueError("LLM did not return any content (empty response).")
