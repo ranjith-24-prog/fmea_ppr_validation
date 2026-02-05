@@ -390,7 +390,7 @@ class LLM:
             raise Exception(f"LLM return decoding failed: {e}. Response was: {response}")
 
     def generate_fmea_and_ppr_json(self, context_text: str, ppr_hint: dict = None):
-    # NOTE: keep your existing constraints exactly; we only add a true one-shot example.
+    # Few-shot version: keeps your existing contract/constraints unchanged, only adds 3 demonstrations.
         system = (
             "You are an expert in manufacturing Process FMEA (DIN EN 60812/APIS) and PPR (Product-Process-Resource) categorization.\n"
             "Given a production description, generate EXACTLY one JSON object with keys 'fmea' and 'ppr'.\n"
@@ -421,33 +421,36 @@ class LLM:
     
         hint_json = json.dumps(ppr_hint or {}, ensure_ascii=False)
     
-        # --- ONE-SHOT EXAMPLE (added) ---
-        # Keep it short (2–3 rows) to teach formatting + schema, not to overwhelm the real task.
-        one_shot = (
-            "ONE-SHOT EXAMPLE\n\n"
+        # FEW-SHOT EXAMPLES:
+        # Keep each example short (2–3 rows) so it teaches realism + schema without dominating the real task.
+        few_shot = (
+            "FEW-SHOT EXAMPLES\n\n"
+    
+            "EXAMPLE 1 (Semi-automatic aluminium MIG welding)\n"
             "Example input:\n"
             "Production scenario:\n"
-            "Robotic seam welding of aluminium sheets includes joint preparation using fixtures, welding execution, and NDT inspection.\n"
+            "Semi-automatic aluminium bicycle chassis MIG welding includes workstation setup, preparation, welding, post-weld processing, and inspection.\n"
             "PPR context hints:\n"
-            '{"products":["Welded aluminium sheets"],"processes":["Joint preparation","Robotic seam welding","Inspection (NDT)"],'
-            '"resources":["Jigs and fixtures","Welding cobot","NDT equipment","Operator"]}\n\n'
-            "Example output (valid JSON; follow this exact schema and nulling rules):\n"
+            '{"products":["Welded Aluminium Bicycle chassis"],'
+            '"processes":["Workstation setup","Preparation","Welding","Post-weld Processing","Inspection"],'
+            '"resources":["Operator","MIG welding equipment","Quality inspector","NDT equipment"]}\n'
+            "Example output:\n"
             "{\n"
             '  "fmea": [\n'
             "    {\n"
-            '      "system_element": "Joint preparation",\n'
-            '      "function": "Using jigs and fixtures to position the workpiece",\n'
-            '      "potential_failure": "Incorrect dimension of gap of the workpiece",\n'
+            '      "system_element": "Workstation setup",\n'
+            '      "function": "Setting up the workpiece and welding equipment",\n'
+            '      "potential_failure": "Misalignment of workpiece joint",\n'
             '      "c1": null,\n'
-            '      "potential_effect": "Reduced strength of the weld joints",\n'
+            '      "potential_effect": "Weak strength of the weld",\n'
             '      "s1": 6,\n'
             '      "c2": null,\n'
             '      "c3": null,\n'
-            '      "potential_cause": "Workpiece slip due to worn fasteners in fixture",\n'
-            '      "o1": 3,\n'
-            '      "current_preventive_action": "Implement scheduled fixture maintenance and replacement plan",\n'
-            '      "current_detection_action": "Use displacement or vision sensors to detect part misalignment before welding",\n'
-            '      "d1": 4,\n'
+            '      "potential_cause": "Worn out fixture fasteners",\n'
+            '      "o1": 4,\n'
+            '      "current_preventive_action": "Scheduled maintenance",\n'
+            '      "current_detection_action": "Pre-clamp checks",\n'
+            '      "d1": 3,\n'
             '      "rpn1": 72,\n'
             '      "recommended_action": null,\n'
             '      "rd": null,\n'
@@ -459,44 +462,20 @@ class LLM:
             '      "notes": null\n'
             "    },\n"
             "    {\n"
-            '      "system_element": "Robotic seam welding",\n'
-            '      "function": "Automated welding of aluminium sheets",\n'
-            '      "potential_failure": "Weld bead is deviated from desired bead profile",\n'
+            '      "system_element": "Preparation",\n'
+            '      "function": "Preparing the equipment for MIG welding operation",\n'
+            '      "potential_failure": "Poor shielding during the MIG welding",\n'
             '      "c1": null,\n'
-            '      "potential_effect": "Porosity in the weld joints",\n'
+            '      "potential_effect": "Porosity in weld bead",\n'
             '      "s1": 7,\n'
             '      "c2": null,\n'
             '      "c3": null,\n'
-            '      "potential_cause": "Sensor malfunction of the welding cobot during welding",\n'
-            '      "o1": 4,\n'
-            '      "current_preventive_action": "Schedule periodic sensor calibration and health checks",\n'
-            '      "current_detection_action": "Integrate real-time diagnostic alerts for sensor data loss or drift",\n'
-            '      "d1": 4,\n'
-            '      "rpn1": 112,\n'
-            '      "recommended_action": null,\n'
-            '      "rd": null,\n'
-            '      "action_taken": null,\n'
-            '      "s2": null,\n'
-            '      "o2": null,\n'
-            '      "d2": null,\n'
-            '      "rpn2": null,\n'
-            '      "notes": null\n'
-            "    },\n"
-            "    {\n"
-            '      "system_element": "Inspection",\n'
-            '      "function": "Interpret NDT equipment readings to detect flaws and accept/reject welds",\n'
-            '      "potential_failure": "Accepted defects due to incomplete/inaccurate NDT inspection",\n'
-            '      "c1": null,\n'
-            '      "potential_effect": "Material failure in service",\n'
-            '      "s1": 6,\n'
-            '      "c2": null,\n'
-            '      "c3": null,\n'
-            '      "potential_cause": "Inaccurate calibration of the equipment during the inspection procedure",\n'
-            '      "o1": 5,\n'
-            '      "current_preventive_action": "Follow documented calibration schedule with traceable reference standards",\n'
-            '      "current_detection_action": "Audit calibration certificates and verify readings using control samples",\n'
-            '      "d1": 4,\n'
-            '      "rpn1": 120,\n'
+            '      "potential_cause": "Contamination in shielding gas supply lines",\n'
+            '      "o1": 3,\n'
+            '      "current_preventive_action": "Cylinder certificates and gas checks",\n'
+            '      "current_detection_action": "Purge flow sensors",\n'
+            '      "d1": 5,\n'
+            '      "rpn1": 105,\n'
             '      "recommended_action": null,\n'
             '      "rd": null,\n'
             '      "action_taken": null,\n'
@@ -508,24 +487,158 @@ class LLM:
             "    }\n"
             "  ],\n"
             '  "ppr": {\n'
-            '    "products": ["Welded aluminium sheets"],\n'
-            '    "processes": ["Joint preparation","Robotic seam welding","Inspection (NDT)"],\n'
-            '    "resources": ["Jigs and fixtures","Welding cobot","NDT equipment","Operator"]\n'
+            '    "products": ["Welded Aluminium Bicycle chassis"],\n'
+            '    "processes": ["Workstation setup","Preparation","Welding","Post-weld Processing","Inspection"],\n'
+            '    "resources": ["Operator","MIG welding equipment","Quality inspector","NDT equipment"]\n'
             "  }\n"
             "}\n\n"
-            "END ONE-SHOT EXAMPLE\n\n"
+    
+            "EXAMPLE 2 (High-frequency ERW for steel pipes)\n"
+            "Example input:\n"
+            "Production scenario:\n"
+            "Automated ERW for steel pipes includes steel strip preparation, forming, high-frequency welding, seam de-beading, and NDT inspection.\n"
+            "PPR context hints:\n"
+            '{"products":["Welded Steel pipe"],'
+            '"processes":["Steel strip Preperation","Steel strip forming","High-Frequency Electric Resistance Welding","Weld Seam Smoothing / De-beading","Weld Inspection"],'
+            '"resources":["Shearing machine","Forming Mill","High-frequency electrodes","Trimming tool","Welding equipment","NDT equipment","Operator","Supervisor"]}\n'
+            "Example output:\n"
+            "{\n"
+            '  "fmea": [\n'
+            "    {\n"
+            '      "system_element": "Steel strip Preperation",\n'
+            '      "function": "Preparing edges of steel strips",\n'
+            '      "potential_failure": "Uneven strip edges after shearing",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Weak weld seam of the workpiece",\n'
+            '      "s1": 7,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Blade wear or improper blade clearance adjustment causing uneven cuts",\n'
+            '      "o1": 5,\n'
+            '      "current_preventive_action": "Schedule periodic blade inspection and clearance calibration",\n'
+            '      "current_detection_action": "Perform dimensional check of slit width and edge straightness after cutting",\n'
+            '      "d1": 3,\n'
+            '      "rpn1": 105,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    },\n"
+            "    {\n"
+            '      "system_element": "High-Frequency Electric Resistance Welding",\n'
+            '      "function": "Welding pipe along longitudinal seam",\n'
+            '      "potential_failure": "Incomplete fusion at weld seam",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Weak weld seam of the workpiece",\n'
+            '      "s1": 7,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Inconsistent current or voltage supply",\n'
+            '      "o1": 4,\n'
+            '      "current_preventive_action": "Use stabilized power source with monitoring and surge protection",\n'
+            '      "current_detection_action": "Record weld current/voltage data and trigger alarms for deviation",\n'
+            '      "d1": 7,\n'
+            '      "rpn1": 196,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    }\n"
+            "  ],\n"
+            '  "ppr": {\n'
+            '    "products": ["Welded Steel pipe"],\n'
+            '    "processes": ["Steel strip Preperation","Steel strip forming","High-Frequency Electric Resistance Welding","Weld Seam Smoothing / De-beading","Weld Inspection"],\n'
+            '    "resources": ["Shearing machine","Forming Mill","High-frequency electrodes","Trimming tool","Welding equipment","NDT equipment","Operator","Supervisor"]\n'
+            "  }\n"
+            "}\n\n"
+    
+            "EXAMPLE 3 (Hot plate welding of plastic sheets)\n"
+            "Example input:\n"
+            "Production scenario:\n"
+            "Hot plate welding of plastic sheets includes heating, joining under pressure, inspection, and surface finishing.\n"
+            "PPR context hints:\n"
+            '{"products":["Bonded Plastic sheet"],'
+            '"processes":["Heating Phase","Welding/ joining phase","Inspection","Surface finish"],'
+            '"resources":["Hot plate","Fixtures","Welding press","NDT equipment","Trimming tool","Operator"]}\n'
+            "Example output:\n"
+            "{\n"
+            '  "fmea": [\n'
+            "    {\n"
+            '      "system_element": "Heating Phase",\n'
+            '      "function": "Bring mating surfaces to melt temperature to prepare for bonding",\n'
+            '      "potential_failure": "Improper heating of weld interface",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Weak weld strength",\n'
+            '      "s1": 8,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Faulty temperature sensor",\n'
+            '      "o1": 6,\n'
+            '      "current_preventive_action": "Schedule routine calibration and replacement of temperature sensors",\n'
+            '      "current_detection_action": "Cross-check temperature with secondary sensor or controller alarm",\n'
+            '      "d1": 4,\n'
+            '      "rpn1": 192,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    },\n"
+            "    {\n"
+            '      "system_element": "Inspection",\n'
+            '      "function": "Inspect bonding quality to detect weld defects",\n'
+            '      "potential_failure": "Missed detection of a weld defect",\n'
+            '      "c1": null,\n'
+            '      "potential_effect": "Weld failure in service",\n'
+            '      "s1": 8,\n'
+            '      "c2": null,\n'
+            '      "c3": null,\n'
+            '      "potential_cause": "Incorrect calibration of NDT equipment",\n'
+            '      "o1": 6,\n'
+            '      "current_preventive_action": "Follow periodic calibration schedule with certified standards",\n'
+            '      "current_detection_action": "Calibration verification check before inspection start",\n'
+            '      "d1": 3,\n'
+            '      "rpn1": 144,\n'
+            '      "recommended_action": null,\n'
+            '      "rd": null,\n'
+            '      "action_taken": null,\n'
+            '      "s2": null,\n'
+            '      "o2": null,\n'
+            '      "d2": null,\n'
+            '      "rpn2": null,\n'
+            '      "notes": null\n'
+            "    }\n"
+            "  ],\n"
+            '  "ppr": {\n'
+            '    "products": ["Bonded Plastic sheet"],\n'
+            '    "processes": ["Heating Phase","Welding/ joining phase","Inspection","Surface finish"],\n'
+            '    "resources": ["Hot plate","Fixtures","Welding press","NDT equipment","Trimming tool","Operator"]\n'
+            "  }\n"
+            "}\n\n"
+    
+            "END FEW-SHOT EXAMPLES\n\n"
         )
     
         user = (
-            one_shot
+            few_shot
             + f"Production scenario:\n{context_text}\n"
             + f"PPR context hints:\n{hint_json}\n"
             + "Remember: output exactly one JSON object as described above."
         )
     
         content = self._chat(system, user, temperature=0.2, max_tokens=3200, purpose="generate_fmea_and_ppr_json")
-        # st.write("DEBUG raw LLM (first 400 chars):")
-        # st.code((content or "")[:400], language="json")
+
 
 
         if not content or not str(content).strip():
