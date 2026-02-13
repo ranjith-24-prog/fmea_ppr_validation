@@ -390,7 +390,6 @@ class LLM:
             raise Exception(f"LLM return decoding failed: {e}. Response was: {response}")
 
     def generate_fmea_and_ppr_json(self, context_text: str, ppr_hint: dict = None):
-    # Few-shot version: keeps your existing contract/constraints unchanged, only adds 3 demonstrations.
         system = (
             "You are an expert in manufacturing Process FMEA (DIN EN 60812/APIS) and PPR (Product-Process-Resource) categorization.\n"
             "Given a production description, generate EXACTLY one JSON object with keys 'fmea' and 'ppr'.\n"
@@ -422,7 +421,6 @@ class LLM:
         hint_json = json.dumps(ppr_hint or {}, ensure_ascii=False)
     
         # FEW-SHOT EXAMPLES:
-        # Keep each example short (2–3 rows) so it teaches realism + schema without dominating the real task.
         few_shot = (
             "FEW-SHOT EXAMPLES\n\n"
     
