@@ -712,7 +712,7 @@ class LLM:
         )
     
         user = (
-            one_shot
+            #one_shot
             #few_shot
             + f"Production scenario:\n{context_text}\n"
             + f"PPR context hints:\n{hint_json}\n"
