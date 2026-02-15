@@ -44,11 +44,6 @@ TAG_MAP = {
     "c1": "c1",
     "c2": "c2",
     "c3": "c3",
-    # Add discoveries from debug_list_tags() here, e.g.:
-    # "processstepname": "system_element",
-    # "failure_mode": "potential_failure",
-    # "effect_of_failure": "potential_effect",
-    # "detection": "d1",
 }
 
 def _strip_ns(tag):
@@ -157,7 +152,6 @@ def parse_excel_fmea(excel_bytes):
         df = df.fillna("")
         df.columns = [str(c).strip() for c in df.columns]
 
-        # Map common headers to APIS keys (extend as needed)
         header_map = {
             # left: header in file, right: APIS key
             "System element": "system_element",
