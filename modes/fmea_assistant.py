@@ -243,10 +243,8 @@ def render_fmea_assistant(embedder, helpers):
                 {"input_products": [], "products": [], "processes": [], "resources": []}
             )
 
-            # --- NEW: reset grid state for new generation (keeps existing features unchanged) ---
             st.session_state.pop("fa_grid_df", None)
             st.session_state.pop("fa_selected_rows", None)
-            # -------------------------------------------------------------------------------
 
             st.session_state["fa_fmea_ms"] = int((time.time() - t0) * 1000)
 
@@ -360,11 +358,9 @@ def render_fmea_assistant(embedder, helpers):
     
         df = st.session_state["fa_grid_df"].copy()
     
-        # --- NEW: keep second S/O/D set unused -> blank it so it doesn't show 0 / confuse users ---
         for _c in ["s2", "o2", "d2", "rpn2"]:
             if _c in df.columns:
                 df[_c] = None
-        # -------------------------------------------------------------------------------
     
         # --- Add/Delete controls ---
         c_del, c_add = st.columns([1, 1])
@@ -373,7 +369,6 @@ def render_fmea_assistant(embedder, helpers):
         with c_add:
             add_clicked = st.button("Add new row", key="fa_add_row")
     
-        # Delete (keeps your logic)
         if delete_clicked:
             selected = st.session_state.get("fa_selected_rows", None)
     
@@ -540,11 +535,9 @@ def render_fmea_assistant(embedder, helpers):
                 axis=1,
             )
     
-        # --- NEW: force rpn2 and its inputs to remain blank (no 0s) ---
         for _c in ["s2", "o2", "d2", "rpn2"]:
             if _c in edited_df.columns:
                 edited_df[_c] = None
-        # -------------------------------------------------------------
     
         # Persist latest grid data (updates when user clicks the MANUAL save button)
         st.session_state["fa_grid_df"] = edited_df.copy()
@@ -860,7 +853,6 @@ def render_fmea_assistant(embedder, helpers):
                                 arr[~np.isfinite(arr)] = 0.0
                                 rec_full[k] = [float(x) for x in arr]
 
-                    # Also verify JSON encoding right here
                     json.dumps(rec_full)
 
                     try:
