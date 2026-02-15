@@ -332,6 +332,11 @@ class LLM:
             try:
                 cfg = out.get("cfg") or {}
                 raw = out.get("raw") or {}
+        
+                usage = raw.get("usage")
+                if cfg.get("type") == "google":
+                    usage = raw.get("usageMetadata") or raw.get("usage_metadata") or raw.get("usage") 
+        
                 rec = {
                     "provider": cfg.get("type"),
                     "model_id": cfg.get("id"),
@@ -343,12 +348,13 @@ class LLM:
                     "max_tokens": max_tokens,
                     "prompt": (user_prompt or "")[:4000],
                     "response_preview": str(out.get("text", ""))[:2000],
-                    "usage": raw.get("usage"),
+                    "usage": usage,
                     "error": None,
                 }
                 log_llm_run(TELEMETRY_CLIENT, rec)
             except Exception as e:
                 print("[telemetry] log_llm_run failed:", e)
+
 
         return out["text"]
 
