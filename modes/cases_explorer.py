@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from styles import AGGRID_CUSTOM_CSS  # not used here yet, but fine if you later add AgGrid
+from styles import AGGRID_CUSTOM_CSS
 
 
 def render_cases_explorer(helpers):
@@ -65,13 +65,11 @@ def render_cases_explorer(helpers):
         # 2) Load PPR via links (case_products/case_processes/case_resources/case_inputs)
         def _load_ppr_for_case(case_id: int):
             try:
-                # Relationship selects return nested objects with 'name'
                 prods = sb.table("case_products").select("product_id, products(name)").eq("case_id", case_id).execute().data or []
                 procs = sb.table("case_processes").select("process_id, processes(name)").eq("case_id", case_id).execute().data or []
                 ress  = sb.table("case_resources").select("resource_id, resources(name)").eq("case_id", case_id).execute().data or []
                 inps  = sb.table("case_inputs").select("input_id, inputs(name)").eq("case_id", case_id).execute().data or []
 
-                # Extract names safely; ensures Input Products are filled if linked
                 inputs = sorted({(row.get("inputs") or {}).get("name", "") for row in inps if (row.get("inputs") or {}).get("name")})
                 products = sorted({(row.get("products") or {}).get("name", "") for row in prods if (row.get("products") or {}).get("name")})
                 processes = sorted({(row.get("processes") or {}).get("name", "") for row in procs if (row.get("processes") or {}).get("name")})
