@@ -243,6 +243,7 @@ def run_llm_chat(model_id: str, messages: List[Dict[str, str]], temperature: flo
             "top_p": top_p,
             "max_tokens": max_tokens
         }
+        print(f"DEBUG: My key is exactly [{cfg['api_key']}]")
         raw = _post_json(url, headers, payload)
         out_text = raw.get("choices", [{}])[0].get("message", {}).get("content", "")
 
