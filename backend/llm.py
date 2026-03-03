@@ -46,7 +46,8 @@ LLM_REGISTRY: Dict[str, Dict[str, str]] = {
         "type": "perplexity",
         "model": "sonar-pro",
         "env": "PERPLEXITY_API_KEY",
-        "base_url": os.getenv("PERPLEXITY_API_URL", "https://api.perplexity.ai"),
+        #"base_url": os.getenv("PERPLEXITY_API_URL", "https://api.perplexity.ai"),
+        "base_url": "https://api.perplexity.ai",
     },
 
     # OpenAI
