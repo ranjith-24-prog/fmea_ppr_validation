@@ -121,7 +121,25 @@ def _get_model_cfg(model_name_or_id: Optional[str]) -> Dict[str, Any]:
 
     cfg = dict(LLM_REGISTRY[mid])
     cfg["id"] = mid
-    cfg["api_key"] = os.getenv(cfg["env"], "")
+    
+    # --- NEW ROBUST KEY LOADING LOGIC ---
+    env_var_name = cfg["env"]
+    
+    # 1. First attempt: grab from standard OS environment variables
+    api_key = os.getenv(env_var_name, "")
+    
+    # 2. Second attempt: if empty, grab from Streamlit secrets
+    if not api_key:
+        try:
+            import streamlit as st
+            if env_var_name in st.secrets:
+                api_key = st.secrets[env_var_name]
+        except Exception:
+            pass # Fails safely if Streamlit isn't running
+            
+    # 3. Final clean: Strip invisible spaces to prevent 401 errors
+    cfg["api_key"] = str(api_key).strip() if api_key else ""
+    
     return cfg
 
 # ---------------------------
@@ -235,7 +253,7 @@ def run_llm_chat(model_id: str, messages: List[Dict[str, str]], temperature: flo
 
     elif t == "perplexity":
         url = (cfg["base_url"].rstrip("/") + "/chat/completions")
-        headers = {"Authorization": f"Bearer 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","Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"}
         payload = {
             "model": cfg["model"],
             "messages": messages,
