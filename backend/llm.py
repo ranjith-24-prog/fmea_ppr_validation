@@ -46,8 +46,7 @@ LLM_REGISTRY: Dict[str, Dict[str, str]] = {
         "type": "perplexity",
         "model": "sonar-pro",
         "env": "PERPLEXITY_API_KEY",
-        #"base_url": os.getenv("PERPLEXITY_API_URL", "https://api.perplexity.ai"),
-        "base_url": "https://api.perplexity.ai",
+        "base_url": os.getenv("PERPLEXITY_API_URL", "https://api.perplexity.ai"),
     },
 
     # OpenAI
@@ -102,45 +101,51 @@ def _get_model_cfg(model_name_or_id: Optional[str]) -> Dict[str, Any]:
 
         if short in ["sonar-pro", "perplexity", "pplx"]:
             mid = "perplexity/sonar-pro"
-        
         elif short in ["gpt-4o", "openai"]:
             mid = "openai/gpt-4o"
-        
         elif short in ["claude", "sonnet", "claude-sonnet-4-5", "claude-4.5-sonnet"]:
             mid = "anthropic/claude-sonnet-4-5"
-        
         elif short in ["gemini", "gemini-flash", "gemini-2.5-flash"]:
             mid = "google/gemini-2.5-flash"
         elif short in ["gemini-pro", "gemini-2.5-pro"]:
             mid = "google/gemini-2.5-pro"
-        
         elif short in ["mistral", "mistral-large", "mistral-large-latest"]:
             mid = "mistral/mistral-large-latest"
-        
         else:
             mid = DEFAULT_MODEL_ID
 
     cfg = dict(LLM_REGISTRY[mid])
     cfg["id"] = mid
     
-    # --- NEW ROBUST KEY LOADING LOGIC ---
+    # --- THE ULTIMATE KEY GRABBER ---
     env_var_name = cfg["env"]
+    api_key = ""
     
-    # 1. First attempt: grab from standard OS environment variables
-    api_key = os.getenv(env_var_name, "")
-    
-    # 2. Second attempt: if empty, grab from Streamlit secrets
+    # 1. TRY SECRETS FIRST (Overrides hidden system env variables)
+    try:
+        import streamlit as st
+        if env_var_name in st.secrets:
+            api_key = st.secrets[env_var_name]
+    except Exception:
+        pass
+        
+    # 2. IF SECRETS IS EMPTY, TRY OS.GETENV
     if not api_key:
-        try:
-            import streamlit as st
-            if env_var_name in st.secrets:
-                api_key = st.secrets[env_var_name]
-        except Exception:
-            pass # Fails safely if Streamlit isn't running
-            
-    # 3. Final clean: Strip invisible spaces to prevent 401 errors
-    cfg["api_key"] = str(api_key).strip() if api_key else ""
+        api_key = os.getenv(env_var_name, "")
+        
+    # 3. DESTROY ANY ACCIDENTAL QUOTES OR SPACES
+    if api_key:
+        # Convert to string, strip whitespace, and strip literal quote characters
+        api_key = str(api_key).strip().strip('"').strip("'")
+        
+    cfg["api_key"] = api_key
     
+    # DEBUG: Safely print the key length and first/last characters to the terminal
+    if api_key:
+        print(f"DEBUG [{cfg['type']}]: Key loaded. Length={len(api_key)}, Starts={api_key[:5]}, Ends={api_key[-4:]}")
+    else:
+        print(f"DEBUG [{cfg['type']}]: KEY IS COMPLETELY BLANK!")
+        
     return cfg
 
 # ---------------------------
