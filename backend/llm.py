@@ -235,7 +235,7 @@ def run_llm_chat(model_id: str, messages: List[Dict[str, str]], temperature: flo
 
     elif t == "perplexity":
         url = (cfg["base_url"].rstrip("/") + "/chat/completions")
-        headers = {"Authorization": f"Bearer {cfg['api_key']}", "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {str(cfg['api_key']).strip()}","Content-Type": "application/json"}
         payload = {
             "model": cfg["model"],
             "messages": messages,
