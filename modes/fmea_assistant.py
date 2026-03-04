@@ -452,7 +452,7 @@ def render_fmea_assistant(embedder, helpers):
             filterable=True, 
             sortable=True, 
             resizable=True,
-            minWidth=250, # This forces horizontal scrolling!
+            #minWidth=250, # This forces horizontal scrolling!
             cellEditor="agLargeTextCellEditor",
             cellEditorPopup=True
         )
@@ -462,16 +462,27 @@ def render_fmea_assistant(embedder, helpers):
 
         gb.configure_column("_provenance", header_name="Prov", filter=True, editable=False)
 
+        # Define which columns are just tiny numbers
+        short_number_cols = ["Case Id","S1", "O1", "D1", "Rpn1","Prov", "S2", "O2", "D2", "Rpn2", "C1", "C2", "C3", "rd"]
+
         for col in df_grid.columns:
             if col in ["_row_id", "_provenance"]:
                 continue
+                
+            # --- NEW: Smart Width Logic ---
+            if col in short_number_cols:
+                col_width = 90  # Just wide enough for the header and a number
+            else:
+                col_width = 350 # Wide enough to read text, but won't break your screen
+                
             gb.configure_column(
                 col,
                 header_name=col.replace("_", " ").title(),
                 filter=True,
                 editable=True,
                 hide=(col in empty_cols and not show_empty_cols),
-                tooltipField=col, # --- NEW: Hovering reveals the full text
+                tooltipField=col,
+                width=col_width # Applies the specific width
             )
     
         gb.configure_selection(
