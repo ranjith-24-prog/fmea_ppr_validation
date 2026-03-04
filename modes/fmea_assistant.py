@@ -369,8 +369,10 @@ def render_fmea_assistant(embedder, helpers):
         with c_add:
             add_clicked = st.button("Add new row", key="fa_add_row")
         with c_expand:
-           
             expand_table = st.toggle("Expand Table Height", key="fa_expand_table")
+        
+        if delete_clicked:
+            selected = st.session_state.get("fa_selected_rows", None)
     
             if selected is None:
                 selected = []
