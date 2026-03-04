@@ -363,14 +363,14 @@ def render_fmea_assistant(embedder, helpers):
                 df[_c] = None
     
         # --- Add/Delete controls ---
-        c_del, c_add = st.columns([1, 1])
+       c_del, c_add, c_expand = st.columns([1, 1, 2])
         with c_del:
             delete_clicked = st.button("Delete selected rows", key="fa_delete_rows")
         with c_add:
             add_clicked = st.button("Add new row", key="fa_add_row")
-    
-        if delete_clicked:
-            selected = st.session_state.get("fa_selected_rows", None)
+        with c_expand:
+           
+            expand_table = st.toggle("Expand Table Height", key="fa_expand_table")
     
             if selected is None:
                 selected = []
@@ -445,19 +445,21 @@ def render_fmea_assistant(embedder, helpers):
     
         gb = GridOptionsBuilder.from_dataframe(df_grid)
         #gb.configure_default_column(filterable=True, sortable=True, resizable=True)
+        # --- NEW: Forces horizontal scroll, keeps text single-line, enables big popup editor ---
         gb.configure_default_column(
             filterable=True, 
             sortable=True, 
             resizable=True,
-            wrapText=True,       # Forces text to wrap to the next line
-            autoHeight=True      # Adjusts row height to fit the wrapped text
+            minWidth=250, # This forces horizontal scrolling!
+            cellEditor="agLargeTextCellEditor",
+            cellEditorPopup=True
         )
-    
+
         if "_row_id" in df_grid.columns:
             gb.configure_column("_row_id", header_name="Row ID", filter=False, editable=False, hide=True)
-    
+
         gb.configure_column("_provenance", header_name="Prov", filter=True, editable=False)
-    
+
         for col in df_grid.columns:
             if col in ["_row_id", "_provenance"]:
                 continue
@@ -467,6 +469,7 @@ def render_fmea_assistant(embedder, helpers):
                 filter=True,
                 editable=True,
                 hide=(col in empty_cols and not show_empty_cols),
+                tooltipField=col, # --- NEW: Hovering reveals the full text
             )
     
         gb.configure_selection(
@@ -481,10 +484,14 @@ def render_fmea_assistant(embedder, helpers):
             "kb-row": "function(params) { return params && params.data && params.data._provenance === 'kb'; }",
             "llm-row": "function(params) { return params && params.data && params.data._provenance === 'llm'; }",
         }
-        #grid_options["domLayout"] = "normal"
-        grid_options["domLayout"] = "autoHeight" 
-        grid_options["enableBrowserTooltips"] = True
-    
+        grid_options["domLayout"] = "normal"
+        
+        # --- NEW: Enable tooltips for the single-line text ---
+        grid_options["enableBrowserTooltips"] = True 
+        
+        # Calculate height based on the toggle switch
+        dynamic_height = 800 if expand_table else 400
+
         # MANUAL editing updates (smooth tabbing) + selection updates for delete
         grid_response = AgGrid(
             df_grid,
@@ -495,8 +502,8 @@ def render_fmea_assistant(embedder, helpers):
             key="fa_fmea_grid",
             allow_unsafe_jscode=True,
             enable_enterprise_modules=False,
-            fit_columns_on_grid_load=False,
-            height=420,
+            fit_columns_on_grid_load=False, # --- MUST BE FALSE for horizontal scrolling!
+            height=dynamic_height,          # --- Uses the toggle height
             theme="ag-theme-alpine",
             custom_css=AGGRID_CUSTOM_CSS,
         )
