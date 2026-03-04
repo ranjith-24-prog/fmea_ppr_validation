@@ -400,19 +400,20 @@ def render_fmea_assistant(embedder, helpers):
         # Add (NO rerun -> avoids “losing cell edits” feeling)
         if add_clicked:
             df_current = st.session_state["fa_grid_df"]
-    
+            
             blank = {c: None for c in df_current.columns}
             blank["_row_id"] = str(uuid.uuid4())
             blank["_provenance"] = "manual"  # default provenance for manual rows
-    
+            
+            # --- NEW: Put the blank row FIRST in the list so it appears at the top ---
             st.session_state["fa_grid_df"] = pd.concat(
-                [df_current, pd.DataFrame([blank])],
+                [pd.DataFrame([blank]), df_current], 
                 ignore_index=True,
             )
-    
+            
             # refresh df for this run so the row appears immediately
             df = st.session_state["fa_grid_df"].copy()
-    
+            
             # Keep second set unused for the refreshed df too
             for _c in ["s2", "o2", "d2", "rpn2"]:
                 if _c in df.columns:
