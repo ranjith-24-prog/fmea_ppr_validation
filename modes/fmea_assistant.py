@@ -363,7 +363,7 @@ def render_fmea_assistant(embedder, helpers):
                 df[_c] = None
     
         # --- Add/Delete controls ---
-       c_del, c_add, c_expand = st.columns([1, 1, 2])
+        c_del, c_add, c_expand = st.columns([1, 1, 2])
         with c_del:
             delete_clicked = st.button("Delete selected rows", key="fa_delete_rows")
         with c_add:
