@@ -362,14 +362,16 @@ def render_fmea_assistant(embedder, helpers):
             if _c in df.columns:
                 df[_c] = None
     
-        # --- Add/Delete controls ---
-        c_del, c_add, c_expand = st.columns([1, 1, 2])
+        # --- BUTTON & TOGGLE LAYOUT ---
+        c_del, c_add, c_expand_v, c_expand_h = st.columns([1, 1, 1.5, 1.5])
         with c_del:
             delete_clicked = st.button("Delete selected rows", key="fa_delete_rows")
         with c_add:
             add_clicked = st.button("Add new row", key="fa_add_row")
-        with c_expand:
-            expand_table = st.toggle("Expand Table Height", key="fa_expand_table")
+        with c_expand_v:
+            expand_table = st.toggle("↕️ Expand Table Height", key="fa_expand_table")
+        with c_expand_h:
+            expand_cols = st.toggle("↔️ Auto-Fit Columns", key="fa_expand_cols")
         
         if delete_clicked:
             selected = st.session_state.get("fa_selected_rows", None)
@@ -447,12 +449,10 @@ def render_fmea_assistant(embedder, helpers):
     
         gb = GridOptionsBuilder.from_dataframe(df_grid)
         #gb.configure_default_column(filterable=True, sortable=True, resizable=True)
-        # --- NEW: Forces horizontal scroll, keeps text single-line, enables big popup editor ---
         gb.configure_default_column(
             filterable=True, 
             sortable=True, 
             resizable=True,
-            #minWidth=250, # This forces horizontal scrolling!
             cellEditor="agLargeTextCellEditor",
             cellEditorPopup=True
         )
@@ -462,18 +462,24 @@ def render_fmea_assistant(embedder, helpers):
 
         gb.configure_column("_provenance", header_name="Prov", filter=True, editable=False)
 
-        # Define which columns are just tiny numbers
-        short_number_cols = ["Case Id","S1", "O1", "D1", "Rpn1","Prov", "S2", "O2", "D2", "Rpn2", "C1", "C2", "C3", "rd"]
+        short_number_cols = ["s1", "o1", "d1", "rpn1", "s2", "o2", "d2", "rpn2", "c1", "c2", "c3", "rd"]
 
         for col in df_grid.columns:
             if col in ["_row_id", "_provenance"]:
                 continue
                 
-            # --- NEW: Smart Width Logic ---
-            if col in short_number_cols:
-                col_width = 90  # Just wide enough for the header and a number
+            # --- THE AUTO-FIT LOGIC ---
+            if expand_cols:
+                # Count characters to find the longest sentence in the column
+                max_content_len = int(df_grid[col].astype(str).str.len().max()) if len(df_grid) > 0 else 0
+                max_len = max(max_content_len, len(col))
+                
+                # Multiply by ~8 pixels per character + 50px for padding/filter menu
+                # Cap it at 1500px so it doesn't break the browser if the LLM writes a novel
+                calc_width = min(max(max_len * 8 + 50, 100), 1500)
             else:
-                col_width = 350 # Wide enough to read text, but won't break your screen
+                # Default Compact Mode
+                calc_width = 90 if col in short_number_cols else 250
                 
             gb.configure_column(
                 col,
@@ -482,7 +488,8 @@ def render_fmea_assistant(embedder, helpers):
                 editable=True,
                 hide=(col in empty_cols and not show_empty_cols),
                 tooltipField=col,
-                width=col_width # Applies the specific width
+                minWidth=calc_width, # <--- By using minWidth, we FORCE horizontal scrolling
+                width=calc_width
             )
     
         gb.configure_selection(
