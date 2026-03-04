@@ -481,7 +481,9 @@ def render_fmea_assistant(embedder, helpers):
             "kb-row": "function(params) { return params && params.data && params.data._provenance === 'kb'; }",
             "llm-row": "function(params) { return params && params.data && params.data._provenance === 'llm'; }",
         }
-        grid_options["domLayout"] = "normal"
+        #grid_options["domLayout"] = "normal"
+        grid_options["domLayout"] = "autoHeight" 
+        grid_options["enableBrowserTooltips"] = True
     
         # MANUAL editing updates (smooth tabbing) + selection updates for delete
         grid_response = AgGrid(
