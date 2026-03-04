@@ -83,6 +83,13 @@ def render_knowledge_base(embedder, helpers):
         df_preview = pd.DataFrame(st.session_state["parsed_fmea"])
         df_grid = df_preview.copy()
 
+        # --- NEW: Layout Toggles ---
+        c_exp_v, c_exp_h = st.columns(2)
+        with c_exp_v:
+            expand_table = st.toggle("↕️ Expand Table Height", key="kb_expand_table")
+        with c_exp_h:
+            expand_cols = st.toggle("↔️ Auto-Fit Columns", key="kb_expand_cols")
+
         is_empty_col = df_grid.apply(
             lambda col: not col.astype(str).str.strip().replace({"None": "", "nan": ""}).ne("").any(), axis=0
         )
@@ -92,16 +99,46 @@ def render_knowledge_base(embedder, helpers):
             st.write("Empty columns:", empty_cols)
 
         gb = GridOptionsBuilder.from_dataframe(df_grid)
-        gb.configure_default_column(filterable=True, sortable=True, resizable=True, editable=True)
+        
+        # --- NEW: Setup Editor Popup ---
+        gb.configure_default_column(
+            filterable=True, 
+            sortable=True, 
+            resizable=True, 
+            editable=True,
+            cellEditor="agLargeTextCellEditor",
+            cellEditorPopup=True
+        )
+        
+        short_number_cols = ["s1", "o1", "d1", "rpn1", "s2", "o2", "d2", "rpn2", "c1", "c2", "c3", "rd"]
+
         for col_name in df_grid.columns:
+            # --- NEW: Smart Width Logic ---
+            if expand_cols:
+                # Auto-Fit text lengths
+                max_content_len = int(df_grid[col_name].astype(str).str.len().max()) if len(df_grid) > 0 else 0
+                max_len = max(max_content_len, len(col_name))
+                calc_width = min(max(max_len * 8 + 50, 100), 1500)
+            else:
+                # Compact Mode
+                calc_width = 90 if col_name in short_number_cols else 250
+                
             gb.configure_column(
                 col_name,
                 header_name=col_name.replace("_", " ").title(),
                 filter=True,
                 editable=True,
                 hide=(col_name in empty_cols and not show_empty_cols),
+                tooltipField=col_name, # Hover tooltips
+                minWidth=calc_width,
+                width=calc_width
             )
+            
         grid_options = gb.build()
+        grid_options["domLayout"] = "normal"
+        grid_options["enableBrowserTooltips"] = True
+
+        dynamic_height = 800 if expand_table else 400
 
         grid_response = AgGrid(
             df_grid,
@@ -109,9 +146,9 @@ def render_knowledge_base(embedder, helpers):
             update_mode=GridUpdateMode.MODEL_CHANGED,
             allow_unsafe_jscode=True,
             enable_enterprise_modules=False,
-            fit_columns_on_grid_load=True,
-            height=400,
-            theme="ag-theme-alpine",  # <--- add this for consistent styling
+            fit_columns_on_grid_load=False, # MUST BE FALSE for horizontal scroll
+            height=dynamic_height,
+            theme="ag-theme-alpine",  
             custom_css=AGGRID_CUSTOM_CSS,
         )
         edited_fmea_df = grid_response["data"]
