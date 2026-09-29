@@ -3,9 +3,10 @@
 A Streamlit web app (Master’s thesis, OvGU) that helps engineers **reuse and extend historical welding FMEAs** using Case‑Based Reasoning (CBR) and Retrieval‑Augmented Generation (RAG), backed by a Supabase (PostgreSQL + pgvector) semantic knowledge base.  
 It also includes an evaluation setup to compare multiple LLM providers on **accuracy, usability, and cost-to-output** for engineering-grade FMEA drafting.
 
-**Live app:** https://fmea-cbr.streamlit.app/  
-**Portfolio write-up:** [FMEA Knowledge Reuse Assistant](https://ranjith-mahesh-en.carrd.co/#fmea)  
-**University/Thesis:** Otto von Guericke University (OvGU) — Master’s Thesis
+**Live app:** [fmea-app-validation.streamlit.app](https://fmea-app-validation.streamlit.app/)  
+**Portfolio:** [ranjith-mahesh.netlify.app](https://ranjith-mahesh.netlify.app/#projects)  
+**University/Thesis:** Otto von Guericke University (OvGU) — Master’s Thesis  
+**Research:** Presented at IEEE ETFA 2026
 
 ![App Screenshot](assets/fmeaapp-screenshot.png)
 
@@ -34,7 +35,7 @@ This project focuses on:
 - Maintain the case base and capture expert-validated updates (closing the CBR loop).
 
 ## Quick start (use the hosted app)
-1. Open the app: https://fmea-cbr.streamlit.app/
+1. Open the app: https://fmea-app-validation.streamlit.app/
 2. Choose a page based on your task (FMEA Assistant / Knowledge Base / Cases Explorer).
 3. Generate suggestions, edit/approve them, and save back into the knowledge base.
 4. Reuse saved cases as context for future FMEAs.
@@ -70,7 +71,7 @@ LLM providers evaluated (as implemented in this project):
 
 ## Output
 - Draft FMEA rows (failure mode, cause, effect, recommended action) suitable for expert review.
-- Optional PER (Process Element Requirements) aligned with a Product‑Process‑Resource (PPR) ontology.
+- Optional PPR (Product, Process and Resource) details aligned with a PPR ontology.
 - A growing, semantically searchable case base that improves as validated cases are added.
 
 ## Tech stack
